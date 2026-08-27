@@ -139,3 +139,8 @@ assets/sample-invite*.jpeg  three real reference photos
   tests, incl. OCR-noise, tie-break and passcode-guard scenarios).
 - `vendor/` — pinned Tesseract.js 5.1.1 + LSTM WASM cores 5.1.1 + `eng`
   traineddata (4.0.0). `scripts/ocr-sample.mjs` reuses `vendor/eng.traineddata.gz`.
+
+## License
+
+[Apache License 2.0](LICENSE) © 2026 Towfiqul Islam. The vendored Tesseract.js
+assets under `vendor/` keep their own upstream licenses (Apache-2.0).

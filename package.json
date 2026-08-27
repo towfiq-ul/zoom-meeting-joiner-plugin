@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Browser extension: OCR a meeting-invite screenshot on-device, extract meeting ID + passcode, join via app or web with a preset name. Unofficial, not affiliated with Zoom.",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "icons": "node scripts/make-icons.mjs",

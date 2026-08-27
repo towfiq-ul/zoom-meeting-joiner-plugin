@@ -1,6 +1,9 @@
-<img src="icons/logo.svg" alt="Zoom Meeting Joiner logo" width="64" />
+<img src="icons/logo.svg" alt="Meeting Invite Scanner logo" width="64" />
 
-# Zoom Meeting Joiner
+# Meeting Invite Scanner
+
+*Unofficial. Not affiliated with, endorsed by, or sponsored by Zoom Video
+Communications, Inc.* See [PRIVACY.md](PRIVACY.md) for data handling.
 
 A browser extension that reads a **screenshot or photo of a Zoom invite**, extracts the
 **meeting ID** and **passcode** with on-device OCR, and opens the meeting in the

@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Zoom Meeting Joiner",
+  "name": "Meeting Invite Scanner",
   "version": "1.0.0",
-  "description": "Parse a screenshot/photo of a Zoom invite, extract the meeting ID and passcode, and join via the app or web client with a preset name.",
+  "description": "Scan a photo of a meeting invite on-device to grab the ID and passcode, then join in the Zoom app or web. Unofficial, not by Zoom.",
   "action": {
-    "default_title": "Zoom Meeting Joiner",
+    "default_title": "Meeting Invite Scanner",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -23,7 +23,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "zoom-meeting-joiner@towfiq.local",
+      "id": "meeting-invite-scanner@towfiq.local",
       "strict_min_version": "121.0"
     }
   }

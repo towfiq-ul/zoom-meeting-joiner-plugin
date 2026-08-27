@@ -1,15 +1,16 @@
 {
-  "name": "zoom-meeting-joiner-plugin",
+  "name": "meeting-invite-scanner",
   "version": "1.0.0",
   "private": true,
-  "description": "Browser extension: OCR a Zoom invite screenshot, extract meeting ID + passcode, join via app or web with a preset name.",
+  "description": "Browser extension: OCR a meeting-invite screenshot on-device, extract meeting ID + passcode, join via app or web with a preset name. Unofficial, not affiliated with Zoom.",
   "type": "module",
   "scripts": {
     "icons": "node scripts/make-icons.mjs",
     "test": "node --test",
     "ocr:sample": "node scripts/ocr-sample.mjs",
     "vendor": "bash scripts/fetch-vendor.sh",
-    "zip": "rm -f dist/zoom-meeting-joiner.zip && mkdir -p dist && zip -r -FS dist/zoom-meeting-joiner.zip manifest.json popup.html popup.css popup.js src vendor icons"
+    "lint": "npx --yes web-ext lint --source-dir . --ignore-files 'scripts/**' 'test/**' 'assets/**' 'dist/**' '*.md' 'package*.json'",
+    "zip": "rm -f dist/meeting-invite-scanner.zip && mkdir -p dist && zip -r -FS dist/meeting-invite-scanner.zip manifest.json popup.html popup.css popup.js src vendor icons"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.60",

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Zoom Meeting Joiner logo">
+  <title>Zoom Meeting Joiner</title>
+  <!-- black rounded square + white "Z"; swap the two colours to invert for light toolbars -->
+  <rect width="128" height="128" rx="23" fill="#000000"/>
+  <g fill="#ffffff">
+    <rect x="31" y="31" width="66" height="11"/>
+    <rect x="31" y="86" width="66" height="11"/>
+  </g>
+  <path d="M97 31 L31 97" stroke="#ffffff" stroke-width="13" stroke-linecap="butt"/>
+</svg>

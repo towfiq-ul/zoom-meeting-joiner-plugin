@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zoom Meeting Joiner</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/logo.svg" alt="" width="22" height="22" class="logo" />
+      <h1>Zoom Meeting Joiner</h1>
+    </header>
+
+    <main>
+      <label class="field">
+        <span>Your display name</span>
+        <input id="userName" type="text" placeholder="Towfiq" autocomplete="off" />
+      </label>
+
+      <div id="drop" class="dropzone" tabindex="0">
+        <input id="file" type="file" accept="image/*" hidden />
+        <p class="dz-main">Drop an invite screenshot here</p>
+        <p class="dz-sub">or click to choose &middot; or paste with Ctrl/&#8984;+V</p>
+      </div>
+
+      <div id="previewWrap" hidden>
+        <div id="previewStage">
+          <img id="preview" alt="loaded screenshot" draggable="false" />
+          <div id="cropSel" hidden></div>
+        </div>
+        <div id="previewBar">
+          <span id="cropHint">Tip: drag a box over the ID / passcode to scan just that part</span>
+          <span class="preview-btns">
+            <button id="cropScan" class="link" hidden>Scan selection</button>
+            <button id="cropReset" class="link" hidden>Whole image</button>
+          </span>
+        </div>
+      </div>
+
+      <div id="status" class="status" hidden>
+        <div class="bar"><div id="barFill"></div></div>
+        <span id="statusText">Starting OCR&hellip;</span>
+      </div>
+
+      <section id="result" class="result" hidden>
+        <div class="row">
+          <label>Meeting ID</label>
+          <input id="meetingId" type="text" inputmode="numeric" />
+        </div>
+        <div class="row">
+          <label>Passcode</label>
+          <input id="passcode" type="text" />
+        </div>
+        <p id="confidence" class="confidence"></p>
+
+        <div class="actions">
+          <button id="join" class="primary">Join meeting…</button>
+        </div>
+        <button id="copyLink" class="link">Copy app link</button>
+      </section>
+
+      <div id="modal" class="modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+          <h2 id="modalTitle">Join this meeting?</h2>
+          <dl class="modal-summary">
+            <div><dt>Meeting ID</dt><dd id="mSumId">—</dd></div>
+            <div><dt>Passcode</dt><dd id="mSumPass">—</dd></div>
+            <div><dt>Name</dt><dd id="mSumName">—</dd></div>
+          </dl>
+          <p class="modal-q">Open with:</p>
+          <div class="modal-actions">
+            <button id="modalApp" class="primary">Installed app</button>
+            <button id="modalWeb">Browser</button>
+          </div>
+          <button id="modalCancel" class="link">Cancel</button>
+        </div>
+      </div>
+
+      <details id="rawWrap" hidden>
+        <summary>OCR text</summary>
+        <pre id="raw"></pre>
+      </details>
+
+      <p id="error" class="error" hidden></p>
+    </main>
+
+    <script src="vendor/tesseract.min.js"></script>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

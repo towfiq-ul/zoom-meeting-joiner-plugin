@@ -1,0 +1,18 @@
+{
+  "name": "zoom-meeting-joiner-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser extension: OCR a Zoom invite screenshot, extract meeting ID + passcode, join via app or web with a preset name.",
+  "type": "module",
+  "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "test": "node --test",
+    "ocr:sample": "node scripts/ocr-sample.mjs",
+    "vendor": "bash scripts/fetch-vendor.sh",
+    "zip": "rm -f dist/zoom-meeting-joiner.zip && mkdir -p dist && zip -r -FS dist/zoom-meeting-joiner.zip manifest.json popup.html popup.css popup.js src vendor icons"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.60",
+    "tesseract.js": "5.1.1"
+  }
+}

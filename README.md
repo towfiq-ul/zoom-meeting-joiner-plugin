@@ -140,6 +140,10 @@ assets/sample-invite*.jpeg  three real reference photos
 - `vendor/` — pinned Tesseract.js 5.1.1 + LSTM WASM cores 5.1.1 + `eng`
   traineddata (4.0.0). `scripts/ocr-sample.mjs` reuses `vendor/eng.traineddata.gz`.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, and conventions.
+
 ## License
 
 [Apache License 2.0](LICENSE) © 2026 Towfiqul Islam. The vendored Tesseract.js

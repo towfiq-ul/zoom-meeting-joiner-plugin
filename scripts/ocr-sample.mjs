@@ -5,7 +5,12 @@
  *
  * Runs the *actual* extension pipeline — src/preprocess.js (Canvas code, via a
  * @napi-rs/canvas shim), the vendored offline Tesseract, src/parser.js and
- * src/combine.js — against the real reference photos in assets/.
+ * src/combine.js — against invite images you pass on the command line.
+ *
+ * No sample invites are committed (they carry real meeting credentials). Pass
+ * your own files, e.g. from a local git-ignored assets/ folder. If a file's
+ * basename matches a key in KNOWN below, the run also asserts the expected
+ * ID / passcode.
  *
  * Dev deps:  npm i --no-save tesseract.js@5.1.1 @napi-rs/canvas
  */
@@ -13,7 +18,7 @@ import { createCanvas, ImageData as NapiImageData, loadImage } from "@napi-rs/ca
 import { createWorker } from "tesseract.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, basename } from "node:path";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { extractMeetingInfo, buildJoinUrl } from "../src/parser.js";
 import { combineResults } from "../src/combine.js";
 
@@ -37,15 +42,32 @@ const { preprocessVariants } = await import("../src/preprocess.js");
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
-// expected values; `null` passcode = known-unreadable on that photo (ID only)
+// Optional expected values, keyed by file basename; `null` passcode =
+// known-unreadable on that photo (ID only). Add your own local fixtures here.
 const KNOWN = {
-  "sample-invite.jpeg": ["89366126292", "017970"],
-  "sample-invite-2.jpeg": ["85119875308", "048349"],
-  "sample-invite-3.jpeg": ["89366126292", null],
+  // "sample-invite.jpeg": ["89366126292", "017970"],
 };
 
-const inputs = process.argv.slice(2);
-if (!inputs.length) inputs.push(...Object.keys(KNOWN).map((f) => join(root, "assets", f)));
+let inputs = process.argv.slice(2);
+if (!inputs.length) {
+  // fall back to any images in a local (git-ignored) assets/ folder
+  const dir = join(root, "assets");
+  try {
+    inputs = readdirSync(dir)
+      .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
+      .map((f) => join(dir, f));
+  } catch {
+    /* no assets/ dir */
+  }
+}
+if (!inputs.length) {
+  console.error(
+    "usage: node scripts/ocr-sample.mjs <image>...\n" +
+      "  no images given and no local assets/ folder found.\n" +
+      "  invite screenshots are never committed — pass your own file(s)."
+  );
+  process.exit(2);
+}
 
 const worker = await createWorker("eng", 1, {
   langPath: join(root, "vendor"),

@@ -4,3 +4,8 @@ node_modules/
 dist/
 *.zip
 .DS_Store
+
+# Local-only invite images for `npm run ocr:sample` — never commit real invites
+/assets/
+*.jpeg
+*.jpg

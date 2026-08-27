@@ -97,26 +97,24 @@ checked in; regenerate them only if you change `scripts/make-icons.mjs`.
 | Task | Command |
 |------|---------|
 | Parser + combiner unit tests (no deps) | `npm test` (`node --test`) |
-| End-to-end OCR on the sample photos | `npm i --no-save tesseract.js@5.1.1 @napi-rs/canvas && npm run ocr:sample` |
+| End-to-end OCR on your own invite image(s) | `npm i --no-save tesseract.js@5.1.1 @napi-rs/canvas && node scripts/ocr-sample.mjs <image>…` |
 | Regenerate icons | `npm run icons` |
 | Re-download vendored OCR assets | `npm run vendor` |
 | Package a `.zip` | `npm run zip` |
 
-`npm run ocr:sample` runs the **real** `src/preprocess.js` Canvas code (via a
+`scripts/ocr-sample.mjs` runs the **real** `src/preprocess.js` Canvas code (via a
 `@napi-rs/canvas` shim) plus the offline engine, parser and combiner, against
-the three fixtures in `assets/`:
+image paths you pass on the command line:
 
 ```
-==================  sample-invite.jpeg  ==================     straight-on screenshot
-  --> combined: {"meetingId":"89366126292","passcode":"017970","confidence":"high"}   OK
-==================  sample-invite-2.jpeg  ==================    faint ID line
-  --> combined: {"meetingId":"85119875308","passcode":"048349","confidence":"medium"} OK
-==================  sample-invite-3.jpeg  ==================    angled monitor, heavy moiré
-  --> combined: {"meetingId":"89366126292","passcode":"","passcodeUnreadable":true}   OK
+node scripts/ocr-sample.mjs ~/Pictures/zoom-invite.jpeg
 ```
 
-Fixture 3 is the worst case: the ID is recovered, the passcode is deliberately
-left blank (the reads disagreed) for the user to type or **Scan selection**.
+**No sample invites are committed** — invite screenshots contain real meeting
+credentials. Drop your own into a local (git-ignored) `assets/` folder, or point
+the script straight at a file. If a passed file's basename matches a key in the
+`KNOWN` map in `scripts/ocr-sample.mjs`, the run also asserts the expected
+ID / passcode.
 
 ## Layout
 
@@ -132,8 +130,10 @@ vendor/                     bundled OCR engine (no runtime network)
 icons/                      logo.svg (master) + generated icon-{16,48,128}.png
 scripts/                    make-icons.mjs, fetch-vendor.sh, ocr-sample.mjs
 test/                       node:test unit tests (parser + combine)
-assets/sample-invite*.jpeg  three real reference photos
 ```
+
+Put your own invite images in a local `assets/` folder for `ocr-sample.mjs` —
+it's git-ignored and never committed.
 
 - `src/parser.js` and `src/combine.js` are pure and dependency-free (23 unit
   tests, incl. OCR-noise, tie-break and passcode-guard scenarios).

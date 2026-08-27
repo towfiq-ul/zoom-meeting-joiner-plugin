@@ -45,13 +45,17 @@ Ask before assuming any of these run in CI — run them locally before opening a
 |---|---|
 | Unit tests (parser + combiner, no deps) | `npm test` |
 | One test file | `node --test test/parser.test.mjs` |
-| End-to-end OCR against `assets/` fixtures | `npm i --no-save tesseract.js@5.1.1 @napi-rs/canvas && npm run ocr:sample` |
+| End-to-end OCR on your own invite image(s) | `npm i --no-save tesseract.js@5.1.1 @napi-rs/canvas && node scripts/ocr-sample.mjs <image>…` |
 | Firefox lint (scoped to shipped files) | `npm run lint` |
 | Package a distributable zip | `npm run zip` |
 
-New parser/combiner behaviour **must** come with a test in `test/`. The
-`ocr:sample` harness asserts against known values in `scripts/ocr-sample.mjs`
-(`KNOWN`); update those if you deliberately change pipeline output.
+New parser/combiner behaviour **must** come with a test in `test/`.
+
+**Never commit invite screenshots** — they carry real meeting credentials, and
+`/assets/` + `*.jpg`/`*.jpeg` are git-ignored for that reason. `ocr-sample.mjs`
+takes image paths as arguments; if a file's basename matches a key in the `KNOWN`
+map in `scripts/ocr-sample.mjs` the run asserts the expected ID / passcode, so
+update that map if you deliberately change pipeline output.
 
 ## Conventions
 

@@ -66,7 +66,7 @@ test("over-captured run is trimmed to a valid length", () => {
 });
 
 test('real OCR: cropped "Join" reads as "in meeting" + labelless passcode', () => {
-  // exactly what Tesseract returns for assets/sample-invite.jpeg
+  // a real Tesseract read of a straight-on invite screenshot
   const text =
     "in meeting 893 6612 6292 | Contacts | ink Copy invitation | 017970 | hg Home =";
   const r = extractMeetingInfo(text);

@@ -86,7 +86,7 @@ update that map if you deliberately change pipeline output.
 
 ## Publishing
 
-Store submission is maintainer-only and documented in `PUBLISHING.md`.
+Store submission (Chrome / Edge / Firefox) is maintainer-only.
 
 ## Licensing
 

@@ -39,27 +39,44 @@ function getWorker() {
 }
 
 /**
- * Run OCR on an image.
+ * Run OCR on an image and return both the plain text and Tesseract's
+ * line-level bounding boxes (the latter is what lets popup.js re-crop and
+ * re-OCR just the meeting-ID line at higher magnification when the first
+ * pass's digits look unreliable — see the "refine" step there).
  * @param {Blob|File|HTMLImageElement|HTMLCanvasElement|string} image
  * @param {(m:{status:string,progress:number})=>void} [onProgress]
- * @returns {Promise<string>} recognized plain text
+ * @param {string} [psm] Tesseract page-segmentation mode. "3" (fully
+ *   automatic, no OSD) is the default and needs no osd.traineddata, but on a
+ *   distant photo (whole laptop + desk around a small dialog) its layout
+ *   analysis can drop a thin text line entirely rather than misread it — "6"
+ *   (assume a single uniform block) recovers those. Callers retry with "6"
+ *   when "3" comes up empty; see popup.js.
+ * @returns {Promise<{text:string, lines:Array<{text:string,bbox:{x0:number,y0:number,x1:number,y1:number}}>}>}
  */
-export async function recognizeText(image, onProgress) {
+export async function recognizeDetailed(image, onProgress, psm = "3") {
   const worker = await getWorker();
   progressSink = onProgress || null;
-  // PSM 3 (fully automatic, no OSD) reads the invite panel's mixed layout best
-  // in testing, and needs no osd.traineddata. Keep inter-word spaces so grouped
-  // meeting IDs ("893 6612 6292") survive.
+  // Keep inter-word spaces so grouped meeting IDs ("893 6612 6292") survive.
   await worker.setParameters({
-    tessedit_pageseg_mode: "3",
+    tessedit_pageseg_mode: psm,
     preserve_interword_spaces: "1",
   });
   try {
     const { data } = await worker.recognize(image);
-    return data.text || "";
+    return { text: data.text || "", lines: data.lines || [] };
   } finally {
     progressSink = null;
   }
+}
+
+/**
+ * Convenience wrapper around recognizeDetailed() for callers that only need
+ * the text.
+ * @returns {Promise<string>} recognized plain text
+ */
+export async function recognizeText(image, onProgress, psm = "3") {
+  const { text } = await recognizeDetailed(image, onProgress, psm);
+  return text;
 }
 
 export async function terminateOcr() {

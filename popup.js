@@ -1,6 +1,6 @@
 import { extractMeetingInfo, formatMeetingId, buildJoinUrl } from "./src/parser.js";
-import { recognizeText } from "./src/ocr.js";
-import { preprocessVariants } from "./src/preprocess.js";
+import { recognizeDetailed } from "./src/ocr.js";
+import { preprocessVariants, bboxToOriginalRegion } from "./src/preprocess.js";
 import { combineResults } from "./src/combine.js";
 
 // Firefox exposes the promise-based `browser.*`; Chrome/Edge only `chrome.*`.
@@ -11,6 +11,7 @@ const els = {
   userName: $("userName"),
   drop: $("drop"),
   file: $("file"),
+  inviteText: $("inviteText"),
   previewWrap: $("previewWrap"),
   previewStage: $("previewStage"),
   preview: $("preview"),
@@ -79,10 +80,48 @@ window.addEventListener("paste", (e) => {
   if (item) handleImage(item.getAsFile());
 });
 
+// ---- text intake ------------------------------------------------------------
+// An image needs OCR (and the ambiguity that comes with it); invite text
+// pasted verbatim (a join link, "Meeting ID: … Passcode: …") can be parsed
+// exactly, so offer it as a direct alternative alongside the screenshot flow.
+els.inviteText.addEventListener("input", () => {
+  handleText(els.inviteText.value);
+});
+
+function handleText(text) {
+  if (!text.trim()) return;
+  clearError();
+  const info = extractMeetingInfo(text);
+  els.meetingId.value = formatMeetingId(info.meetingId) || "";
+  els.passcode.value = info.passcode || "";
+  els.rawWrap.hidden = true;
+
+  if (!info.meetingId) {
+    els.confidence.textContent = "Couldn't find a meeting ID in that text — check it includes the ID or a join link.";
+    els.confidence.className = "confidence low";
+  } else {
+    els.confidence.textContent = `Detected from pasted text (confidence: ${info.confidence}). Check before joining.`;
+    els.confidence.className = "confidence " + info.confidence;
+  }
+  els.result.hidden = false;
+}
+
 // ---- pipeline -----------------------------------------------------------------
 let objectUrl = null;
 let busy = false;
 let lastBlob = null; // kept so "Scan selection" can re-run on a sub-region
+
+/** Which OCR "line" (Tesseract bbox) produced a given meetingId, for the refine step below. */
+function findIdLine(lines, meetingId) {
+  if (!lines || !meetingId) return null;
+  for (const line of lines) {
+    const id = extractMeetingInfo(line.text).meetingId;
+    if (id && (id === meetingId || meetingId.includes(id) || id.includes(meetingId))) return line;
+  }
+  // OCR may have split/garbled the line enough that it no longer parses on
+  // its own — the "meeting" cue is still a strong signal of which line it was.
+  return lines.find((l) => /\bmeeting\b/i.test(l.text)) || null;
+}
 
 async function handleImage(blob, manualRegion) {
   if (busy) return;
@@ -105,20 +144,60 @@ async function handleImage(blob, manualRegion) {
     const variants = await preprocessVariants(blob, manualRegion);
     const results = [];
     const texts = [];
+    const passes = []; // { variant, info, lines } — kept so a low-confidence
+    // result can trigger the "refine" re-crop below
 
-    for (let i = 0; i < variants.length; i++) {
+    outer: for (let i = 0; i < variants.length; i++) {
       const label = `Reading image ${i + 1}/${variants.length}`;
-      const text = await recognizeText(variants[i].canvas, (m) => {
-        if (m.status === "recognizing text") {
-          const pct = Math.round((m.progress || 0) * 100);
-          setProgress(10 + ((i + m.progress) / variants.length) * 85, `${label}… ${pct}%`);
-        }
-      });
-      texts.push(`[${variants[i].name}]\n${text.trim()}`);
-      results.push(extractMeetingInfo(text));
+      // PSM 3 (auto layout) first; a distant photo's mixed layout (menu bar,
+      // dialog, big "Contacts" text below) can make it drop the thin
+      // meeting-ID line entirely, so retry that variant with PSM 6 (assume a
+      // single uniform text block) when PSM 3 found no ID.
+      for (const psm of ["3", "6"]) {
+        const { text, lines } = await recognizeDetailed(
+          variants[i].canvas,
+          (m) => {
+            if (m.status === "recognizing text") {
+              const pct = Math.round((m.progress || 0) * 100);
+              setProgress(10 + ((i + m.progress) / variants.length) * 85, `${label}… ${pct}%`);
+            }
+          },
+          psm
+        );
+        texts.push(`[${variants[i].name} psm${psm}]\n${text.trim()}`);
+        const info = extractMeetingInfo(text);
+        results.push(info);
+        passes.push({ variant: variants[i], info, lines });
 
-      // stop early once enough variants agree
-      if (combineResults(results).confidence === "high") break;
+        // stop early once enough variants agree
+        if (combineResults(results).confidence === "high") break outer;
+        if (info.meetingId) break; // PSM 3 already found an ID; skip the PSM 6 retry
+      }
+    }
+
+    // "Refine": several whole-region variants can each misread one digit of
+    // the tiny ID line differently (Lanczos/segmentation noise at that scale)
+    // and end up splitting the vote instead of agreeing. If we're not
+    // confident yet but at least one pass found *a* candidate line, re-crop
+    // tightly around just that line from the ORIGINAL photo and re-OCR it at
+    // much higher effective magnification — the same path "Scan selection"
+    // uses by hand, run automatically.
+    if (combineResults(results).confidence !== "high") {
+      const seed = passes.find((p) => p.info.meetingId);
+      const seedLine = seed && findIdLine(seed.lines, seed.info.meetingId);
+      if (seedLine) {
+        setProgress(92, "Zooming into the meeting ID…");
+        const region = bboxToOriginalRegion(seed.variant, seedLine.bbox);
+        const refined = await preprocessVariants(blob, region);
+        outer2: for (const v of refined) {
+          for (const psm of ["3", "6", "7"]) {
+            const { text } = await recognizeDetailed(v.canvas, null, psm);
+            texts.push(`[refine:${v.name} psm${psm}]\n${text.trim()}`);
+            results.push(extractMeetingInfo(text));
+            if (combineResults(results).confidence === "high") break outer2;
+          }
+        }
+      }
     }
 
     const info = combineResults(results);

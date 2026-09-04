@@ -60,6 +60,34 @@ input[type="text"] {
 }
 input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
 
+textarea {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  resize: vertical;
+}
+textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  margin: -4px 0;
+}
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .dropzone {
   border: 1.5px dashed var(--border);
   border-radius: 8px;

@@ -218,13 +218,14 @@ function sharpen(g, W, H, amount = 1.1) {
 }
 
 // ---- variant assembly -------------------------------------------------
+/** The upscale factor render()/renderNative() apply to a given source region. */
+function calcScale(region) {
+  return Math.min(MAX_DIM / region.w, MAX_DIM / region.h, Math.max(1.5, TARGET_W / region.w));
+}
+
 function render(srcGray, W, H, region, { gamma = 0, blur = false } = {}) {
   const g0 = cropGray(srcGray, W, H, region);
-  const scale = Math.min(
-    MAX_DIM / region.w,
-    MAX_DIM / region.h,
-    Math.max(1.5, TARGET_W / region.w)
-  );
+  const scale = calcScale(region);
   const dw = Math.max(1, Math.round(region.w * scale));
   const dh = Math.max(1, Math.round(region.h * scale));
   const g = resample(g0, region.w, region.h, dw, dh);
@@ -239,11 +240,58 @@ function render(srcGray, W, H, region, { gamma = 0, blur = false } = {}) {
 }
 
 /**
+ * Alternate upscale path using the canvas's own high-quality resize instead
+ * of the hand-rolled Lanczos-3 resample() above. Lanczos was chosen because
+ * canvas *bilinear* smears small text (see file preamble) — but at the high
+ * magnification a small region needs, its ringing can bend a thin glyph's
+ * curve into a different digit (a "6" reading as "8"/"5"); the canvas's own
+ * "high"-quality resize doesn't share that failure mode on real photos.
+ * Kept as an additional vote member alongside the Lanczos variants rather
+ * than a replacement, since Lanczos still wins on other photos.
+ */
+function renderNative(colorCanvas, region, { gamma = 0 } = {}) {
+  const scale = calcScale(region);
+  const dw = Math.max(1, Math.round(region.w * scale));
+  const dh = Math.max(1, Math.round(region.h * scale));
+  const c = makeCanvas(dw, dh);
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(colorCanvas, region.left, region.top, region.w, region.h, 0, 0, dw, dh);
+  const g = grayFromImageData(ctx.getImageData(0, 0, dw, dh).data, dw, dh);
+  stretch(g);
+  if (gamma) gammaLift(g, gamma);
+  return grayToCanvas(g, dw, dh);
+}
+
+/**
+ * Map a Tesseract line/word bbox (pixel coords on one variant's *canvas*,
+ * i.e. already cropped-to-region and upscaled) back to a pixel box on the
+ * ORIGINAL image, so it can be handed back into preprocessVariants() as a
+ * manualRegion for a tight, freshly-upscaled re-OCR of just that line — see
+ * the "refine" step in popup.js.
+ * @param {{region:{left:number,top:number}, scale:number}} variant
+ * @param {{x0:number,y0:number,x1:number,y1:number}} bbox
+ * @param {number} [pad] extra pixels of context to keep on each side, in
+ *   ORIGINAL image pixels
+ */
+export function bboxToOriginalRegion(variant, bbox, pad = 4) {
+  const { region, scale } = variant;
+  return {
+    left: region.left + bbox.x0 / scale - pad,
+    top: region.top + bbox.y0 / scale - pad,
+    w: (bbox.x1 - bbox.x0) / scale + pad * 2,
+    h: (bbox.y1 - bbox.y0) / scale + pad * 2,
+  };
+}
+
+/**
  * @param {Blob|File} blob
  * @param {{left:number,top:number,w:number,h:number}} [manualRegion] pixel box
  *        (in the original image) chosen by the user; when given, auto-crop is
  *        skipped and only that region is processed.
- * @returns {Promise<{name:string, canvas:HTMLCanvasElement|OffscreenCanvas}[]>}
+ * @returns {Promise<{name:string, canvas:HTMLCanvasElement|OffscreenCanvas,
+ *            region:{left:number,top:number,w:number,h:number}, scale:number}[]>}
  */
 export async function preprocessVariants(blob, manualRegion) {
   const bmp = await toBitmap(blob);
@@ -255,8 +303,6 @@ export async function preprocessVariants(blob, manualRegion) {
   const gray = grayFromImageData(pctx.getImageData(0, 0, W, H).data, W, H);
   if (bmp.close) bmp.close();
 
-  const full = { left: 0, top: 0, w: W, h: H };
-
   if (manualRegion) {
     const r = {
       left: Math.max(0, Math.round(manualRegion.left)),
@@ -264,10 +310,12 @@ export async function preprocessVariants(blob, manualRegion) {
       w: Math.min(W, Math.round(manualRegion.w)),
       h: Math.min(H, Math.round(manualRegion.h)),
     };
+    const scale = calcScale(r);
     return [
-      { name: "sel", canvas: render(gray, W, H, r) },
-      { name: "sel-gamma", canvas: render(gray, W, H, r, { gamma: 2.2 }) },
-      { name: "sel-blur", canvas: render(gray, W, H, r, { blur: true }) },
+      { name: "sel", canvas: render(gray, W, H, r), region: r, scale },
+      { name: "sel-gamma", canvas: render(gray, W, H, r, { gamma: 2.2 }), region: r, scale },
+      { name: "sel-blur", canvas: render(gray, W, H, r, { blur: true }), region: r, scale },
+      { name: "sel-native", canvas: renderNative(probe, r), region: r, scale },
     ];
   }
 
@@ -290,10 +338,31 @@ export async function preprocessVariants(blob, manualRegion) {
     ["mid", sub(0.18, 0.74), {}],
   ];
 
-  return specs.map(([name, region, opts]) => ({
+  const out = specs.map(([name, region, opts]) => ({
     name,
     canvas: render(gray, W, H, region, opts),
+    region,
+    scale: calcScale(region),
   }));
+  // Also try the ID and passcode regions through the native resize path (see
+  // renderNative) — the region small enough to need heavy magnification is
+  // the one most prone to a Lanczos misread, so give it more than one shot.
+  const upperRegion = sub(0, 0.6);
+  const midRegion = sub(0.18, 0.74);
+  out.push({ name: "full-native", canvas: renderNative(probe, b), region: b, scale: calcScale(b) });
+  out.push({
+    name: "upper-native",
+    canvas: renderNative(probe, upperRegion),
+    region: upperRegion,
+    scale: calcScale(upperRegion),
+  });
+  out.push({
+    name: "mid-native",
+    canvas: renderNative(probe, midRegion),
+    region: midRegion,
+    scale: calcScale(midRegion),
+  });
+  return out;
 }
 
 /** Single best-effort variant (kept for callers that want just one). */

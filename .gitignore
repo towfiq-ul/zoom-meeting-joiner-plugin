@@ -8,5 +8,6 @@ dist/
 
 # Local-only invite images for `npm run ocr:sample` — never commit real invites
 /assets/
+!/assets/store/
 *.jpeg
 *.jpg

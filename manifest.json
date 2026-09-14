@@ -3,6 +3,7 @@
   "name": "Meeting Invite Scanner",
   "version": "1.0.0",
   "description": "Scan a photo of a meeting invite on-device to grab the ID and passcode, then join in the Zoom app or web. Unofficial, not by Zoom.",
+  "categories": ["Productivity"],
   "action": {
     "default_title": "Meeting Invite Scanner",
     "default_popup": "popup.html",

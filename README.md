@@ -99,6 +99,7 @@ checked in; regenerate them only if you change `scripts/make-icons.mjs`.
 | Parser + combiner unit tests (no deps) | `npm test` (`node --test`) |
 | End-to-end OCR on your own invite image(s) | `npm i --no-save tesseract.js@5.1.1 @napi-rs/canvas && node scripts/ocr-sample.mjs <image>…` |
 | Regenerate icons | `npm run icons` |
+| Generate store listing images | `make store-assets` (or `node scripts/store-assets.mjs`) |
 | Re-download vendored OCR assets | `npm run vendor` |
 | Package a `.zip` | `npm run zip` |
 

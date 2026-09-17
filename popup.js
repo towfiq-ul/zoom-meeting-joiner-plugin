@@ -35,19 +35,45 @@ const els = {
   mSumId: $("mSumId"),
   mSumPass: $("mSumPass"),
   mSumName: $("mSumName"),
+  cacheBar: $("cacheBar"),
+  cacheText: $("cacheText"),
+  cacheClear: $("cacheClear"),
   rawWrap: $("rawWrap"),
   raw: $("raw"),
   error: $("error"),
 };
 
-// ---- name persistence -------------------------------------------------------
+// ---- cache persistence -------------------------------------------------------
+// Meeting ID + passcode are cached locally for 8 hours so returning users
+// don't have to re-scan or re-paste the same invite. Stored alongside the
+// display name in storage.local — nothing leaves the device.
 const NAME_KEY = "zmj_userName";
-api.storage.local.get(NAME_KEY).then((r) => {
+const CACHE_KEY = "zmj_meetingCache";
+const CACHE_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
+
+api.storage.local.get([NAME_KEY, CACHE_KEY]).then((r) => {
   els.userName.value = r[NAME_KEY] || "Towfiq";
+  if (r[CACHE_KEY] && Date.now() - r[CACHE_KEY].timestamp < CACHE_TTL_MS) {
+    els.meetingId.value = formatMeetingId(r[CACHE_KEY].meetingId) || r[CACHE_KEY].meetingId;
+    els.passcode.value = r[CACHE_KEY].passcode || "";
+    els.cacheBar.hidden = false;
+    els.cacheText.textContent = "Cached meeting details — ready to join";
+  }
 });
 els.userName.addEventListener("change", () => {
   api.storage.local.set({ [NAME_KEY]: els.userName.value.trim() });
 });
+
+function saveCache(meetingId, passcode) {
+  api.storage.local.set({
+    [CACHE_KEY]: { meetingId, passcode, timestamp: Date.now() },
+  });
+}
+function clearCache() {
+  api.storage.local.remove(CACHE_KEY);
+  els.cacheBar.hidden = true;
+}
+els.cacheClear.addEventListener("click", clearCache);
 
 // ---- image intake ---------------------------------------------------------
 els.drop.addEventListener("click", () => els.file.click());
@@ -89,8 +115,9 @@ els.inviteText.addEventListener("input", () => {
 });
 
 function handleText(text) {
-  if (!text.trim()) return;
+  if (!text.trim()) { clearCache(); return; }
   clearError();
+  clearCache();
   const info = extractMeetingInfo(text);
   els.meetingId.value = formatMeetingId(info.meetingId) || "";
   els.passcode.value = info.passcode || "";
@@ -102,6 +129,7 @@ function handleText(text) {
   } else {
     els.confidence.textContent = `Detected from pasted text (confidence: ${info.confidence}). Check before joining.`;
     els.confidence.className = "confidence " + info.confidence;
+    saveCache(info.meetingId, info.passcode);
   }
   els.result.hidden = false;
 }
@@ -127,6 +155,7 @@ async function handleImage(blob, manualRegion) {
   if (busy) return;
   busy = true;
   resetUI();
+  clearCache();
 
   if (blob !== lastBlob) {
     lastBlob = blob;
@@ -208,6 +237,8 @@ async function handleImage(blob, manualRegion) {
 
     els.meetingId.value = formatMeetingId(info.meetingId) || "";
     els.passcode.value = info.passcode || "";
+
+    if (info.meetingId) saveCache(info.meetingId, info.passcode);
 
     const agree = info.agreement.id;
     let msg;
@@ -314,6 +345,7 @@ function launch(target) {
   const v = currentValues();
   if (!v.meetingId) return showError("Enter a meeting ID first.");
   clearError();
+  clearCache();
   let url;
   try {
     url = buildJoinUrl(target, v);

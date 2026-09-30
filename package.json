@@ -1,9 +1,17 @@
 {
   "name": "meeting-invite-scanner",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
-  "description": "Browser extension: OCR a meeting-invite screenshot on-device, extract meeting ID + passcode, join via app or web with a preset name. Unofficial, not affiliated with Zoom.",
+  "description": "Browser extension: Extract Zoom meeting ID + passcode from invite screenshots or pasted text on-device, cache for up to 8h, and join via desktop app or web with a preset name. 100% offline & private. Unofficial, not affiliated with Zoom.",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/towfiq-ul/zoom-meeting-joiner-plugin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/towfiq-ul/zoom-meeting-joiner-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/towfiq-ul/zoom-meeting-joiner-plugin/issues"
+  },
   "type": "module",
   "scripts": {
     "icons": "node scripts/make-icons.mjs",
@@ -11,7 +19,7 @@
     "ocr:sample": "node scripts/ocr-sample.mjs",
     "vendor": "bash scripts/fetch-vendor.sh",
     "lint": "npx --yes web-ext lint --source-dir . --ignore-files 'scripts/**' 'test/**' 'assets/**' 'dist/**' '*.md' 'package*.json'",
-    "zip": "rm -f dist/meeting-invite-scanner.zip && mkdir -p dist && zip -r -FS dist/meeting-invite-scanner.zip manifest.json popup.html popup.css popup.js src vendor icons"
+    "zip": "rm -f dist/meeting-invite-scanner.zip && mkdir -p dist && zip -r -FS dist/meeting-invite-scanner.zip manifest.json popup.html popup.css popup.js privacy.html src vendor icons"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.60",

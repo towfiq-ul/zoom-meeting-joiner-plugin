@@ -30,7 +30,7 @@ ocr: ## Run end-to-end OCR against assets/ fixtures (needs dev deps installed).
 lint: ## Lint the extension with web-ext (scoped to files that ship in the zip).
 	$(NPM) run lint
 
-zip: lint ## Lint, then package dist/meeting-invite-scanner.zip — only extension files (manifest, popup.*, src, vendor, icons). No docs, scripts, tests, or deps.
+zip: lint ## Lint, then package dist/meeting-invite-scanner.zip — only extension files (manifest, popup.*, privacy.html, src, vendor, icons). No docs, scripts, tests, or deps.
 	$(NPM) run zip
 
 clean: ## Remove build artifacts.

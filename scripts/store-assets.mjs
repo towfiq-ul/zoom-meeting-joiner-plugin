@@ -457,8 +457,12 @@ async function renderScene(canvas, { title, subtitle, scale, build }, logoImg) {
   cctx.fill();
   build(cctx, 0, 0, logoImg);
 
-  const cardW = POPUP_W * scale;
-  const cardH = contentH * scale;
+  // Scale down if the card would overflow the canvas (scene 5 with the
+  // confirm modal is the common case).
+  const maxCardH = H - 118 - 60; // banner + breathing room
+  const autoScale = Math.min(scale, maxCardH / contentH, (W - 120) / POPUP_W);
+  const cardW = POPUP_W * autoScale;
+  const cardH = contentH * autoScale;
   const toolbarW = cardW + 40;
   const px = (W - toolbarW) / 2 + 20;
   const toolbarY = 118 + (H - 118 - (cardH + 34 + 16)) / 2;
@@ -468,9 +472,9 @@ async function renderScene(canvas, { title, subtitle, scale, build }, logoImg) {
   drawCard(ctx, px, cardY, cardH);
   ctx.save();
   ctx.translate(px, cardY);
-  ctx.scale(scale, scale);
+  ctx.scale(autoScale, autoScale);
   // re-clip to rounded corners of the card before drawing content
-  rr(ctx, 0, 0, POPUP_W, contentH, 10 / scale);
+  rr(ctx, 0, 0, POPUP_W, contentH, 10 / autoScale);
   ctx.clip();
   ctx.drawImage(cardCanvas, 0, 0);
   ctx.restore();

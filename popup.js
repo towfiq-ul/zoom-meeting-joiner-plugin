@@ -2,6 +2,13 @@ import { extractMeetingInfo, formatMeetingId, buildJoinUrl } from "./src/parser.
 import { recognizeDetailed } from "./src/ocr.js";
 import { preprocessVariants, bboxToOriginalRegion } from "./src/preprocess.js";
 import { combineResults } from "./src/combine.js";
+import {
+  CACHE_KEY,
+  NAME_KEY,
+  CACHE_TTL_MS,
+  isCacheValid,
+  createCacheEntry,
+} from "./src/cache.js";
 
 // Firefox exposes the promise-based `browser.*`; Chrome/Edge only `chrome.*`.
 const api = globalThis.browser ?? globalThis.chrome;
@@ -47,17 +54,19 @@ const els = {
 // Meeting ID + passcode are cached locally for 8 hours so returning users
 // don't have to re-scan or re-paste the same invite. Stored alongside the
 // display name in storage.local — nothing leaves the device.
-const NAME_KEY = "zmj_userName";
-const CACHE_KEY = "zmj_meetingCache";
-const CACHE_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
-
 api.storage.local.get([NAME_KEY, CACHE_KEY]).then((r) => {
   els.userName.value = r[NAME_KEY] || "Towfiq";
-  if (r[CACHE_KEY] && Date.now() - r[CACHE_KEY].timestamp < CACHE_TTL_MS) {
-    els.meetingId.value = formatMeetingId(r[CACHE_KEY].meetingId) || r[CACHE_KEY].meetingId;
-    els.passcode.value = r[CACHE_KEY].passcode || "";
+  if (isCacheValid(r[CACHE_KEY])) {
+    const cached = r[CACHE_KEY];
+    els.meetingId.value = formatMeetingId(cached.meetingId) || cached.meetingId;
+    els.passcode.value = cached.passcode || "";
+    els.confidence.textContent = "Loaded from 8-hour cache. Ready to join.";
+    els.confidence.className = "confidence high";
+    els.result.hidden = false;
     els.cacheBar.hidden = false;
     els.cacheText.textContent = "Cached meeting details — ready to join";
+  } else if (r[CACHE_KEY]) {
+    api.storage.local.remove(CACHE_KEY);
   }
 });
 els.userName.addEventListener("change", () => {
@@ -65,13 +74,25 @@ els.userName.addEventListener("change", () => {
 });
 
 function saveCache(meetingId, passcode) {
-  api.storage.local.set({
-    [CACHE_KEY]: { meetingId, passcode, timestamp: Date.now() },
-  });
+  const entry = createCacheEntry(meetingId, passcode);
+  api.storage.local.set({ [CACHE_KEY]: entry });
 }
 function clearCache() {
   api.storage.local.remove(CACHE_KEY);
   els.cacheBar.hidden = true;
+  els.meetingId.value = "";
+  els.passcode.value = "";
+  els.inviteText.value = "";
+  els.previewWrap.hidden = true;
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
+  }
+  lastBlob = null;
+  els.preview.removeAttribute("src");
+  clearSelection();
+  els.result.hidden = true;
+  clearError();
 }
 els.cacheClear.addEventListener("click", clearCache);
 
@@ -115,9 +136,14 @@ els.inviteText.addEventListener("input", () => {
 });
 
 function handleText(text) {
-  if (!text.trim()) { clearCache(); return; }
+  if (!text.trim()) {
+    els.result.hidden = true;
+    return;
+  }
   clearError();
-  clearCache();
+  els.previewWrap.hidden = true;
+  clearSelection();
+
   const info = extractMeetingInfo(text);
   els.meetingId.value = formatMeetingId(info.meetingId) || "";
   els.passcode.value = info.passcode || "";
@@ -126,10 +152,13 @@ function handleText(text) {
   if (!info.meetingId) {
     els.confidence.textContent = "Couldn't find a meeting ID in that text — check it includes the ID or a join link.";
     els.confidence.className = "confidence low";
+    els.cacheBar.hidden = true;
   } else {
     els.confidence.textContent = `Detected from pasted text (confidence: ${info.confidence}). Check before joining.`;
     els.confidence.className = "confidence " + info.confidence;
     saveCache(info.meetingId, info.passcode);
+    els.cacheBar.hidden = false;
+    els.cacheText.textContent = "Cached meeting details — ready to join";
   }
   els.result.hidden = false;
 }
@@ -155,7 +184,8 @@ async function handleImage(blob, manualRegion) {
   if (busy) return;
   busy = true;
   resetUI();
-  clearCache();
+  els.cacheBar.hidden = true;
+  els.inviteText.value = "";
 
   if (blob !== lastBlob) {
     lastBlob = blob;
@@ -238,7 +268,11 @@ async function handleImage(blob, manualRegion) {
     els.meetingId.value = formatMeetingId(info.meetingId) || "";
     els.passcode.value = info.passcode || "";
 
-    if (info.meetingId) saveCache(info.meetingId, info.passcode);
+    if (info.meetingId) {
+      saveCache(info.meetingId, info.passcode);
+      els.cacheBar.hidden = false;
+      els.cacheText.textContent = "Cached meeting details — ready to join";
+    }
 
     const agree = info.agreement.id;
     let msg;
@@ -345,7 +379,6 @@ function launch(target) {
   const v = currentValues();
   if (!v.meetingId) return showError("Enter a meeting ID first.");
   clearError();
-  clearCache();
   let url;
   try {
     url = buildJoinUrl(target, v);
@@ -406,10 +439,32 @@ els.copyLink.addEventListener("click", async () => {
   }
 });
 
-// keep the formatted ID tidy as the user edits
+function syncCache() {
+  const v = currentValues();
+  if (v.meetingId) {
+    saveCache(v.meetingId, v.passcode);
+    els.cacheBar.hidden = false;
+    els.cacheText.textContent = "Cached meeting details — ready to join";
+  }
+}
+
+// keep the formatted ID tidy as the user edits and sync cache
 els.meetingId.addEventListener("blur", () => {
   const d = els.meetingId.value.replace(/\D/g, "");
   els.meetingId.value = formatMeetingId(d) || d;
+  syncCache();
+});
+els.passcode.addEventListener("input", syncCache);
+
+// ---- external links -------------------------------------------------------
+document.querySelectorAll('a[target="_blank"]').forEach((a) => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const url = a.href;
+    if (url) {
+      api.tabs?.create ? api.tabs.create({ url }) : window.open(url, "_blank");
+    }
+  });
 });
 
 // ---- ui helpers -----------------------------------------------------------

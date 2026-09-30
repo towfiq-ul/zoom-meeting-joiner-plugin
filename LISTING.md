@@ -9,48 +9,38 @@ addons.mozilla.org listings. Keep in sync with `manifest.json` and `PRIVACY.md`.
 
 ## Short description (≤132 chars — matches `manifest.json` `description`)
 
-> Scan a photo of a meeting invite on-device to grab the ID and passcode, then join in the Zoom app or web. Unofficial, not by Zoom.
+> Extract Zoom meeting ID & passcode from invite photos or text with offline OCR. Join in app or web with 8h cache. Unofficial.
 
 ## Full description
 
-> **Meeting Invite Scanner** turns a screenshot or phone photo of a meeting
-> invite into a one-click join.
+> **Meeting Invite Scanner** turns a screenshot, phone photo, or raw text of a meeting invite into a fast, one-click join.
 >
-> Point it at an image of a Zoom invite and it reads the **meeting ID** and
-> **passcode** with on-device OCR, then opens the meeting in the **Zoom desktop
-> app** or the **web client** with your display name pre-filled.
+> Point it at an image of a Zoom invite or paste invite text directly: it extracts the **meeting ID** and **passcode** using on-device OCR and intelligent text parsing, caches them locally for up to 8 hours for instant rejoining, and opens the meeting in the **Zoom desktop app** or the **web client** with your custom display name pre-filled.
 >
-> **Everything runs locally.** The OCR engine (Tesseract.js), its WebAssembly
-> core, and the English language data are all bundled in the extension. No image
-> or text ever leaves your machine — there is no server, no analytics, and no
-> remote code.
+> **100% Private & Offline.** The OCR engine (Tesseract.js), its WebAssembly core, and the trained language data are bundled directly inside the extension. No images, text, or credentials ever leave your machine — there are zero external network calls, zero tracking, and zero telemetry.
 >
-> **How it works**
-> - Drop, choose, or paste (Ctrl/⌘+V) an image of the invite.
-> - It cleans up several variants of the image and runs OCR on each, then takes
->   a weighted vote — built for rough phone photos (glare, moiré, faint text).
-> - Full `zoom.us/j/...` links in the image are read directly when present.
-> - Wrong value? Drag a box over the ID or passcode in the preview and rescan
->   just that region, or edit the fields by hand.
-> - Nothing opens until you confirm the ID / passcode / name in a dialog.
+> **Key Features**
+> - **Screenshot & Photo OCR:** Drop, choose, or paste (Ctrl/⌘+V) an invite photo or screenshot. Multi-variant preprocessing and weighted voting ensure reliable reads even on phone photos of screens.
+> - **Direct Text Paste:** Paste invite emails, chat messages, or full Zoom join links (`zoom.us/j/...`) for instant, zero-delay parsing.
+> - **8-Hour Smart Cache:** Scanned or pasted meeting credentials are saved in local device storage for 8 hours so you can easily rejoin or check details without re-scanning. Clear anytime with one click.
+> - **Precision Drag-to-Crop:** If an invite image has heavy clutter or moiré, drag a box over the credentials and rescan just that region.
+> - **One-Click Launch:** Pre-fills your preferred display name and opens directly in the installed Zoom app (`zoommtg://`) or browser web client.
+> - **Safe Confirmation:** Review the meeting ID, passcode, and your name before launching.
 >
 > **Permissions**
-> - *storage* — remembers your display name locally; that is the only thing
->   stored.
-> - *wasm-unsafe-eval* — runs the bundled Tesseract.js OCR WebAssembly locally;
->   no remote code is loaded.
+> - *storage* — saves your display name and temporary 8-hour meeting cache locally on your device.
+> - *wasm-unsafe-eval* — executes the bundled Tesseract.js WebAssembly OCR engine locally; no remote code is loaded.
 >
-> **Unofficial. Not affiliated with, endorsed by, or sponsored by Zoom Video
-> Communications, Inc.** "Zoom" is a trademark of Zoom Video Communications, Inc.
+> **Unofficial. Not affiliated with, endorsed by, or sponsored by Zoom Video Communications, Inc.** "Zoom" is a trademark of Zoom Video Communications, Inc.
 
 ## Privacy practices tab (Chrome) / Notes for certification (Edge) / Data collection (AMO)
 
 - Data collected: **none**. Nothing is transmitted off-device.
-- `storage`: used only to remember the display name locally.
+- `storage`: used only to remember the display name and local 8-hour meeting cache locally.
 - `wasm-unsafe-eval`: bundled Tesseract.js OCR WebAssembly, runs locally, no
   remote code.
 
-See `PRIVACY.md` for the full wording.
+See `PRIVACY.md` (and `privacy.html`) for the full wording.
 
 ## Listing assets
 

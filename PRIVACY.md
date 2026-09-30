@@ -12,15 +12,15 @@ addons.mozilla.org privacy forms.
 - The images you load are read in the browser only, held in memory for the scan,
   and discarded when you close the popup. They are never uploaded.
 - A scanned meeting ID + passcode may be cached locally for up to 8 hours
-  (`storage.local`) so you can rejoin without re-scanning. It is cleared when
-  you join a meeting, drop a new image, paste new text, or click "Clear" in
+  (`storage.local`) so you can rejoin without re-scanning. It is cleared after
+  8 hours, or when you drop a new image, paste new text, or click "Clear" in
   the popup. No cached data is transmitted anywhere.
 
 ## Permissions
 
 | Permission | Why it's needed |
 |---|---|
-| `storage` | Remembers your **display name** locally (`storage.local` / `storage.sync`) so you don't retype it. Also caches a scanned **meeting ID + passcode** for up to 8 hours so returning users can rejoin a previously scanned meeting without re-OCRing — the cache is cleared when you join, paste new text, or drop a new image, or manually via "Clear" in the popup. That name and the cache are the only things ever written to storage. |
+| `storage` | Remembers your **display name** locally (`storage.local` / `storage.sync`) so you don't retype it. Also caches a scanned **meeting ID + passcode** for up to 8 hours so returning users can rejoin a previously scanned meeting without re-OCRing — the cache is retained for 8 hours or until you drop a new image, paste new text, or manually click "Clear" in the popup. That name and the cache are the only things ever written to storage. |
 | `wasm-unsafe-eval` (CSP) | Runs the bundled Tesseract.js OCR **WebAssembly** engine. It is required to instantiate the local `.wasm` core — it does **not** load or execute any remote code. |
 
 ## OCR / remote code

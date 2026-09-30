@@ -5,12 +5,13 @@
 *Unofficial. Not affiliated with, endorsed by, or sponsored by Zoom Video
 Communications, Inc.* See [PRIVACY.md](PRIVACY.md) for data handling.
 
-A browser extension that reads a **screenshot or photo of a Zoom invite**, extracts the
-**meeting ID** and **passcode** with on-device OCR, and opens the meeting in the
-**desktop app** or the **web client** with your display name pre-filled.
+A privacy-first browser extension that reads a **screenshot, photo, or pasted text of a Zoom invite**, extracts the
+**meeting ID** and **passcode** using on-device OCR and parsing, and opens the meeting in the
+**desktop app** or the **web client** with your display name pre-filled. Credentials can be cached
+locally for up to 8 hours for rapid rejoining.
 
 Everything runs locally — the vendored Tesseract.js engine, WASM core and English
-language data are bundled in the extension, so no image ever leaves your machine.
+language data are bundled in the extension, so no image or text ever leaves your machine.
 
 ## How it works
 

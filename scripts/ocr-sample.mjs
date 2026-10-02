@@ -25,12 +25,10 @@ import { combineResults } from "../src/combine.js";
 // --- Canvas shims so src/preprocess.js runs unchanged under Node ----------
 class OffscreenCanvasShim {
   constructor(w, h) {
-    this._c = createCanvas(w, h);
-    this.width = w;
-    this.height = h;
-  }
-  getContext(t) {
-    return this._c.getContext(t);
+    const c = createCanvas(w, h);
+    c.width = w;
+    c.height = h;
+    return c;
   }
 }
 globalThis.OffscreenCanvas = OffscreenCanvasShim;
@@ -74,7 +72,12 @@ const worker = await createWorker("eng", 1, {
   gzip: true,
   cacheMethod: "none",
 });
-await worker.setParameters({ tessedit_pageseg_mode: "3", preserve_interword_spaces: "1" });
+await worker.setParameters({
+  tessedit_pageseg_mode: "3",
+  preserve_interword_spaces: "1",
+  user_defined_dpi: "300",
+  debug_file: "/dev/null",
+});
 
 let failures = 0;
 
@@ -87,7 +90,7 @@ for (const input of inputs) {
 
   const results = [];
   for (const v of variants) {
-    const png = v.canvas._c.toBuffer("image/png");
+    const png = v.canvas.toBuffer ? v.canvas.toBuffer("image/png") : v.canvas._c.toBuffer("image/png");
     const { data } = await worker.recognize(png);
     const info = extractMeetingInfo(data.text);
     results.push(info);

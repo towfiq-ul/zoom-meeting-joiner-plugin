@@ -57,9 +57,15 @@ export async function recognizeDetailed(image, onProgress, psm = "3") {
   const worker = await getWorker();
   progressSink = onProgress || null;
   // Keep inter-word spaces so grouped meeting IDs ("893 6612 6292") survive.
+  // user_defined_dpi avoids "Estimating resolution as ..." stderr warnings on
+  // images lacking DPI metadata (canvas/screenshots), which Chrome extensions
+  // surface as runtime errors in chrome://extensions.
+  // debug_file redirects diagnostic C++ stderr logging to null.
   await worker.setParameters({
     tessedit_pageseg_mode: psm,
     preserve_interword_spaces: "1",
+    user_defined_dpi: "300",
+    debug_file: "/dev/null",
   });
   try {
     const { data } = await worker.recognize(image);

@@ -10,6 +10,18 @@ import {
   createCacheEntry,
 } from "./src/cache.js";
 
+// Suppress harmless Tesseract DPI estimation warnings from extension error logs
+const _origWarn = console.warn;
+console.warn = function (...args) {
+  if (
+    typeof args[0] === "string" &&
+    (args[0].includes("resolution") || args[0].includes("Resolution"))
+  ) {
+    return;
+  }
+  _origWarn.apply(console, args);
+};
+
 // Firefox exposes the promise-based `browser.*`; Chrome/Edge only `chrome.*`.
 const api = globalThis.browser ?? globalThis.chrome;
 
